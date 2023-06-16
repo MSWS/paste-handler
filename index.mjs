@@ -4,13 +4,13 @@ import crypto from "crypto";
 let s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const handler = async (event) => {
-    let httpMethod = event.requestContext.http.method;
-    let bucketName = process.env.BUCKET_NAME;
     console.log(event);
+    let httpMethod = event.httpMethod;
+    let bucketName = process.env.BUCKET_NAME;
 
     if (httpMethod === "GET") {
         // Get last /[key] segment of path
-        let objectKey = event.rawPath.split("/").pop();
+        let objectKey = event.path.split("/").pop();
 
         try {
             const command = new GetObjectCommand({
@@ -22,7 +22,8 @@ export const handler = async (event) => {
                 statusCode: 200,
                 body: await streamToString(response.Body),
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type": "text/plain",
+                    "Access-Control-Allow-Origin": "*"
                 },
             };
         } catch (err) {
@@ -30,6 +31,7 @@ export const handler = async (event) => {
             return {
                 statusCode: 500,
                 body: JSON.stringify({ error: err.message }),
+                "Access-Control-Allow-Origin": "*"
             };
         }
     } else if (httpMethod === "POST") {
@@ -44,6 +46,9 @@ export const handler = async (event) => {
                     return {
                         statusCode: 200,
                         body: JSON.stringify({ message: "duplicate", key: objectKey }),
+                        headers: {
+                            "Access-Control-Allow-Origin": "*",
+                        }
                     };
                 }
                 objectKey = bumpBase64(objectKey);
@@ -58,18 +63,27 @@ export const handler = async (event) => {
             return {
                 statusCode: 200,
                 body: JSON.stringify({ key: objectKey }),
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                }
             };
         } catch (err) {
             console.error(err);
             return {
                 statusCode: 500,
                 body: JSON.stringify({ error: err.message }),
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                }
             };
         }
     } else {
         return {
             statusCode: 400,
             body: JSON.stringify({ error: "Invalid HTTP method" }),
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+            }
         };
     }
 }
